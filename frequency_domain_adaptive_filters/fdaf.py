@@ -16,38 +16,39 @@
 """ Frequency Domain Adaptive Filter """
 
 import numpy as np
-from numpy.fft import rfft as fft
-from numpy.fft import irfft as ifft
+from librosa.core import stft
 
 def fdaf(x, d, M, mu=0.05, beta=0.9):
+  X = stft(x,n_fft=M,win_length=M,center=True)
   H = np.zeros(M+1,dtype=np.complex)
   norm = np.full(M+1,1e-8)
 
   window =  np.hanning(M)
   x_old = np.zeros(M)
+  d_old = np.zeros(M)
 
   num_block = min(len(x),len(d)) // M
   e = np.zeros(num_block*M)
 
   for n in range(num_block):
     x_n = np.concatenate([x_old,x[n*M:(n+1)*M]])
-    d_n = d[n*M:(n+1)*M]
+    d_n = np.concatenate([d_old,d[n*M:(n+1)*M]])
     x_old = x[n*M:(n+1)*M]
+    d_old = d[n*M:(n+1)*M]
 
     X_n = fft(x_n)
-    y_n = ifft(H*X_n)[M:]
-    e_n = d_n-y_n
-    e[n*M:(n+1)*M] = e_n
-
-    e_fft = np.concatenate([np.zeros(M),e_n*window])
-    E_n = fft(e_fft)
+    D_n = fft(d_n)
+    Y_n = H.conj()*X_n
+    E_n = D_n-Y_n
+    e_n = ifft(E_n)[M:]
+    e[n*M:(n+1)*M] = e_n * window
 
     norm = beta*norm + (1-beta)*np.abs(X_n)**2
-    G = mu*E_n/(norm+1e-3)
-    H = H + X_n.conj()*G
+    # G = mu*E_n/(norm+1e-3)
+    H = H + mu * X_n*E_n.conj()/(norm+1e-5)
 
-    h = ifft(H)
-    h[M:] = 0
-    H = fft(h)
+    # h = ifft(H)
+    # h[M:] = 0
+    # H = fft(h)
 
   return e
