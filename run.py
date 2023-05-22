@@ -118,7 +118,7 @@ def main():
 
   print("processing frequency domain adaptive filters.")
 
-  e = fdaf(x, d, M=256, mu=0.1)
+  e = fdaf(x, d, frame_length=256, window_length=512, filter_length=1, mu=0.1)
   e = np.clip(e,-1,1)
   sf.write('samples/fdaf.wav', e, sr, subtype='PCM_16')
 
