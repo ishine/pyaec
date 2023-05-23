@@ -24,6 +24,7 @@ def fdkf(ref, mic, frame_length, window_length, filter_length, beta=0.95, sgm2u=
   n_freq = window_length//2+1
   X = stft(x, n_fft=window_length, win_length=window_length, hop_length=frame_length, center=False)
   D = stft(d, n_fft=window_length, win_length=window_length, hop_length=frame_length, center=False)
+  E = np.zeros(X.shape, dtype=np.complex)
 
   Q = sgm2u
   R = np.full(n_freq,sgm2v)
@@ -36,8 +37,9 @@ def fdkf(ref, mic, frame_length, window_length, filter_length, beta=0.95, sgm2u=
   for n in range(num_block):
     X_n = X[:,n]
     D_n = D[:,n]
-    Y_n = H.conj()*X_n
+    Y_n = H*X_n
     E_n = D_n-Y_n
+    E[:,n] = E_n
 
     R = beta*R + (1.0 - beta)*(np.abs(E_n)**2)
     P_n = P + Q*(np.abs(H))
@@ -45,10 +47,6 @@ def fdkf(ref, mic, frame_length, window_length, filter_length, beta=0.95, sgm2u=
     P = (1.0 - K*X_n)*P_n 
 
     H = H + K*E_n
-    h = ifft(H)
-    h[M:] = 0
-    H = fft(h)
 
-    e[n*M:(n+1)*M] = e_n
-  
+  e = istft(E, win_length=window_length, hop_length=frame_length, center=False)
   return e

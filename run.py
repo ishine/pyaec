@@ -33,7 +33,7 @@ from nonlinear_adaptive_filters.volterra import svf
 from nonlinear_adaptive_filters.flaf import flaf
 from nonlinear_adaptive_filters.aeflaf import aeflaf
 from nonlinear_adaptive_filters.sflaf import sflaf
-from nonlinear_adaptive_filters.cflaf import cflaf
+from frequency_domain_adaptive_filters.fdkf_tencent import fdkf_tencent
 
 
 def main():
@@ -118,13 +118,17 @@ def main():
 
   print("processing frequency domain adaptive filters.")
 
-  e = fdaf(x, d, frame_length=256, window_length=512, filter_length=1, mu=0.1)
-  e = np.clip(e,-1,1)
-  sf.write('samples/fdaf.wav', e, sr, subtype='PCM_16')
+  # e = fdaf(x, d, frame_length=256, window_length=512, filter_length=1, mu=0.1)
+  # e = np.clip(e,-1,1)
+  # sf.write('samples/fdaf.wav', e, sr, subtype='PCM_16')
 
-  e = fdkf(x, d, M=256)
+  # e = fdkf(x, d, frame_length=256, window_length=512, filter_length=1)
+  # e = np.clip(e,-1,1)
+  # sf.write('samples/fdkf.wav', e, sr, subtype='PCM_16')
+
+  e = fdkf_tencent(x, d, frame_length=256, window_length=512, tap_num=4)
   e = np.clip(e,-1,1)
-  sf.write('samples/fdkf.wav', e, sr, subtype='PCM_16')
+  sf.write('samples/fdkf_tencent.wav', e, sr, subtype='PCM_16')
 
   # e = pfdaf(x, d, N=8, M=64, mu=0.1, partial_constrain=True)
   # e = np.clip(e,-1,1)
