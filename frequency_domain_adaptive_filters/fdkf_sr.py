@@ -18,7 +18,7 @@
 import numpy as np
 from librosa.core import stft, istft
 
-def fdkf_tencent(ref, mic, frame_length, window_length, tap_num):
+def fdkf_sr(ref, mic, frame_length, window_length, tap_num):
   A = 0.999
   alpha_q = 0.95
   alpha_s = 0.95
