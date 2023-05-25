@@ -18,18 +18,18 @@
 import numpy as np
 from librosa.core import stft, istft
 
-def fdaf(ref, mic, frame_length, window_length, filter_length, mu=0.05, beta=0.9):
+def fdaf(ref, mic, frame_length, window_length, tap_num, mu=0.05, beta=0.9):
   x = ref
   d = mic
   n_freq = window_length//2+1
   X = stft(x, n_fft=window_length, win_length=window_length, hop_length=frame_length, center=False)
   D = stft(d, n_fft=window_length, win_length=window_length, hop_length=frame_length, center=False)
   E = np.zeros(X.shape, dtype=np.complex)
-  H = np.zeros((n_freq, filter_length), dtype=np.complex)
+  H = np.zeros((n_freq, tap_num), dtype=np.complex)
   norm = np.zeros((n_freq), dtype=np.complex)
   num_block = X.shape[-1]
   assert num_block == (x.shape[-1] - window_length) // frame_length + 1
-  X_n = np.zeros((n_freq,filter_length), dtype=np.complex)
+  X_n = np.zeros((n_freq,tap_num), dtype=np.complex)
 
   for n in range(num_block):
     X_n[:,1:] = X_n[:,:-1]
@@ -39,8 +39,7 @@ def fdaf(ref, mic, frame_length, window_length, filter_length, mu=0.05, beta=0.9
     E_n = D_n-Y_n
     E[:,n] = E_n
 
-    x_n = x[n*frame_length:(n+1)*frame_length]
-    if (x_n ** 2).sum() < 10 ** (-40 / 10): 
+    if np.abs(X_n).mean() < 1e-5:
       continue
 
     norm = beta*norm + (1-beta)*np.abs(X_n[:,0])**2

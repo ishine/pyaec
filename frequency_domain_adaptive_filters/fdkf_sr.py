@@ -18,10 +18,10 @@
 import numpy as np
 from librosa.core import stft, istft
 
-def fdkf_sr(ref, mic, frame_length, window_length, tap_num):
+def fdkf_sr(ref, mic, frame_length, window_length, tap_num, alpha_q=0.95, alpha_s=0.95, A=0.999):
   A = 0.999
-  alpha_q = 0.95
-  alpha_s = 0.95
+  alpha_q = alpha_q
+  alpha_s = alpha_s
   n_taps = tap_num
   x = ref
   y = mic
@@ -49,7 +49,7 @@ def fdkf_sr(ref, mic, frame_length, window_length, tap_num):
     # X_m = np.roll(X_m, 1, axis=0)
     X_m[1:,:] = X_m[:-1,:]
     X_m[0,:] = X[m,:]
-    if np.abs(X_m).sum() < 1e-5:
+    if np.abs(X_m).mean() < 1e-5:
       E[m,:] = Y[m,:]
       continue
     for k in range(n_freq):
