@@ -47,9 +47,22 @@ def process_file(line, output_dir, align):
     assert sr == 16000
 
     if align:
-        tau = gcc_phat(y[:sr * 10], x[:sr * 10], fs=sr, interp=1)
-        tau = max(0, int((tau - 0.001) * sr))
-        x = np.concatenate([np.zeros(tau), x], axis=0)[:y.shape[-1]]
+        print("aligning x and y")
+        # tau = gcc_phat(y, x, fs=sr, interp=2)
+        corr = np.correlate(x[:sr*10], y[:sr*10], mode='full')
+        delay = corr.argmax() - (sr*10 - 1)
+        print(delay, corr.max())
+        corr = np.correlate(y[:sr*10], x[:sr*10], mode='full')
+        delay = corr.argmax() - (sr*10 - 1)
+        print(delay, corr.max())
+        import pdb; pdb.set_trace()
+        print("tau: {}".format(tau))
+        if tau > 0:
+          tau = max(0, int((tau - 0.001) * sr))
+          x = np.concatenate([np.zeros(tau), x], axis=0)[:y.shape[-1]]
+        elif tau < 0:
+          tau = max(0, int((-tau + 0.001) * sr))
+          y = np.concatenate([np.zeros(tau), y], axis=0)[:x.shape[-1]]
 
     print("processing frequency domain kalman filters with 4 convolutive taps")
 
@@ -73,11 +86,14 @@ def main(list_file, output_dir, align):
     with open(list_file, "r") as f:
         lines = f.readlines()
 
-    with Pool(processes=4) as pool:
-        pool.starmap(
-            process_file,
-            [(line, output_dir, align) for line in lines]
-        )
+    for line in lines:
+        process_file(line, output_dir, align)
+
+    # with Pool(processes=4) as pool:
+    #     pool.starmap(
+    #         process_file,
+    #         [(line, output_dir, align) for line in lines]
+    #     )
 
 
 if __name__ == '__main__':
