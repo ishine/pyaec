@@ -33,7 +33,7 @@ from nonlinear_adaptive_filters.volterra import svf
 from nonlinear_adaptive_filters.flaf import flaf
 from nonlinear_adaptive_filters.aeflaf import aeflaf
 from nonlinear_adaptive_filters.sflaf import sflaf
-from frequency_domain_adaptive_filters.fdkf_sr import fdkf_sr
+from frequency_domain_adaptive_filters.fdkf_saf import fdkf_saf
 
 
 def main():
@@ -126,7 +126,7 @@ def main():
   # e = np.clip(e,-1,1)
   # sf.write('samples/fdkf.wav', e, sr, subtype='PCM_16')
 
-  e = fdkf_sr(x, d, frame_length=256, window_length=512, tap_num=4)
+  e = fdkf_saf(x, d, frame_length=256, window_length=512, tap_num=4)
   e = np.clip(e,-1,1)
   sf.write('samples/fdkf_sr.wav', e, sr, subtype='PCM_16')
 
