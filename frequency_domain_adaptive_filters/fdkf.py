@@ -16,33 +16,30 @@
 """ Frequency Domain Kalman Filter """
 
 import numpy as np
-from numpy.fft import rfft as fft
-from numpy.fft import irfft as ifft
+from librosa.core import stft, istft
 
-def fdkf(x, d, M, beta=0.95, sgm2u=1e-2, sgm2v=1e-6):
+def fdkf(ref, mic, frame_length, window_length, filter_length, beta=0.95, sgm2u=1e-2, sgm2v=1e-6):
+  x = ref
+  d = mic
+  n_freq = window_length//2+1
+  X = stft(x, n_fft=window_length, win_length=window_length, hop_length=frame_length, center=False)
+  D = stft(d, n_fft=window_length, win_length=window_length, hop_length=frame_length, center=False)
+  E = np.zeros(X.shape, dtype=np.complex)
+
   Q = sgm2u
-  R = np.full(M+1,sgm2v)
-  H = np.zeros(M+1,dtype=np.complex)
-  P = np.full(M+1,sgm2u)
+  R = np.full(n_freq,sgm2v)
+  H = np.zeros(n_freq,dtype=np.complex)
+  P = np.full(n_freq,sgm2u)
 
-  window =  np.hanning(M)
-  x_old = np.zeros(M)
-
-  num_block = min(len(x),len(d)) // M
-  e = np.zeros(num_block*M)
+  num_block = X.shape[-1]
+  assert num_block == (x.shape[-1] - window_length) // frame_length + 1
 
   for n in range(num_block):
-    x_n = np.concatenate([x_old,x[n*M:(n+1)*M]])
-    d_n = d[n*M:(n+1)*M]
-    x_old = x[n*M:(n+1)*M]
-
-    X_n = np.fft.rfft(x_n)
-
-    y_n = ifft(H*X_n)[M:]
-    e_n = d_n-y_n
-
-    e_fft = np.concatenate([np.zeros(M),e_n*window])
-    E_n = fft(e_fft)
+    X_n = X[:,n]
+    D_n = D[:,n]
+    Y_n = H*X_n
+    E_n = D_n-Y_n
+    E[:,n] = E_n
 
     R = beta*R + (1.0 - beta)*(np.abs(E_n)**2)
     P_n = P + Q*(np.abs(H))
@@ -50,10 +47,6 @@ def fdkf(x, d, M, beta=0.95, sgm2u=1e-2, sgm2v=1e-6):
     P = (1.0 - K*X_n)*P_n 
 
     H = H + K*E_n
-    h = ifft(H)
-    h[M:] = 0
-    H = fft(h)
 
-    e[n*M:(n+1)*M] = e_n
-  
+  e = istft(E, win_length=window_length, hop_length=frame_length, center=False)
   return e

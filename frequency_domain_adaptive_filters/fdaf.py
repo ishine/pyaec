@@ -16,38 +16,34 @@
 """ Frequency Domain Adaptive Filter """
 
 import numpy as np
-from numpy.fft import rfft as fft
-from numpy.fft import irfft as ifft
+from librosa.core import stft, istft
 
-def fdaf(x, d, M, mu=0.05, beta=0.9):
-  H = np.zeros(M+1,dtype=np.complex)
-  norm = np.full(M+1,1e-8)
-
-  window =  np.hanning(M)
-  x_old = np.zeros(M)
-
-  num_block = min(len(x),len(d)) // M
-  e = np.zeros(num_block*M)
+def fdaf(ref, mic, frame_length, window_length, tap_num, mu=0.05, beta=0.9):
+  x = ref
+  d = mic
+  n_freq = window_length//2+1
+  X = stft(x, n_fft=window_length, win_length=window_length, hop_length=frame_length, center=False)
+  D = stft(d, n_fft=window_length, win_length=window_length, hop_length=frame_length, center=False)
+  E = np.zeros(X.shape, dtype=np.complex)
+  H = np.zeros((n_freq, tap_num), dtype=np.complex)
+  norm = np.zeros((n_freq), dtype=np.complex)
+  num_block = X.shape[-1]
+  assert num_block == (x.shape[-1] - window_length) // frame_length + 1
+  X_n = np.zeros((n_freq,tap_num), dtype=np.complex)
 
   for n in range(num_block):
-    x_n = np.concatenate([x_old,x[n*M:(n+1)*M]])
-    d_n = d[n*M:(n+1)*M]
-    x_old = x[n*M:(n+1)*M]
+    X_n[:,1:] = X_n[:,:-1]
+    X_n[:,0] = X[:,n]
+    D_n = D[:,n]
+    Y_n = (H.conj()*X_n).sum(-1)
+    E_n = D_n-Y_n
+    E[:,n] = E_n
 
-    X_n = fft(x_n)
-    y_n = ifft(H*X_n)[M:]
-    e_n = d_n-y_n
-    e[n*M:(n+1)*M] = e_n
+    if np.abs(X_n).mean() < 1e-5:
+      continue
 
-    e_fft = np.concatenate([np.zeros(M),e_n*window])
-    E_n = fft(e_fft)
+    norm = beta*norm + (1-beta)*np.abs(X_n[:,0])**2
+    H = H + mu * X_n*E_n.conj()[:,None]/(norm[:,None]+1e-5)
 
-    norm = beta*norm + (1-beta)*np.abs(X_n)**2
-    G = mu*E_n/(norm+1e-3)
-    H = H + X_n.conj()*G
-
-    h = ifft(H)
-    h[M:] = 0
-    H = fft(h)
-
+  e = istft(E, win_length=window_length, hop_length=frame_length, center=False)
   return e
